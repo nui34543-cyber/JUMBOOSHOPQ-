@@ -930,13 +930,15 @@ description: p.description
 }
 // 4. Fetch Promotions
 const { data: promoData, error: promoError } = await supabaseClient.from('promotions').select('*');
-if (!promoError && promoData && promoData.length > 0) {
+if (!promoError && promoData) {
+if(promoData.length > 0) {
 appState.promotions = promoData.map(pr => ({
 id: pr.id,
 title: pr.title,
 code: pr.code,
 description: pr.description
 }));
+}
 }
 // 5. Fetch Queues
 const { data: queueData, error: queueError } = await supabaseClient.from('queues').select('*');
@@ -1826,6 +1828,7 @@ if(error) throw error;
 }
 closeModal('modal-admin-promotion');
 await fetchSupabaseData();
+renderPromotions();
 showToast('บันทึกโปรโมชั่นเรียบร้อย');
 } catch (err) {
 console.error("Error saving promotion:", err);
@@ -1839,6 +1842,7 @@ if(!confirm('ลบโปรโมชั่นนี้?') || !supabaseClient) r
 const { error } = await supabaseClient.from('promotions').delete().eq('id', id);
 if(!error) {
 await fetchSupabaseData();
+renderPromotions();
 showToast('ลบโปรโมชั่นเรียบร้อย');
 } else {
 showToast('เกิดข้อผิดพลาดในการลบโปรโมชั่น', 'error');
