@@ -517,7 +517,7 @@ animation: none !important;
 <h3 class="font-extrabold text-amber-950 text-base">รายการสินค้าทั้งหมด</h3>
 <div class="flex items-center gap-2">
 <button onclick="openCategoryModal()" class="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-300 wiggle-hover">
-<i class="fa-solid fa-tags"></i> แนว
+<i class="fa-solid fa-tags"></i> แนวงาน
 </button>
 <button onclick="openProductModal()" class="px-4 py-2.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-400 wiggle-hover">
 <i class="fa-solid fa-plus"></i> เพิ่มสินค้า
@@ -531,7 +531,7 @@ animation: none !important;
 <tr>
 <th class="p-3.5">รูปภาพ</th>
 <th class="p-3.5">ชื่อสินค้า</th>
-<th class="p-3.5">แนว</th>
+<th class="p-3.5">แนวงาน</th>
 <th class="p-3.5">ราคาเริ่มต้น</th>
 <th class="p-3.5 text-center">จัดการ</th>
 </tr>
@@ -609,7 +609,7 @@ animation: none !important;
 </div>
 <div class="sm:col-span-2">
 <label class="block text-xs font-bold text-amber-950 mb-1">LINE Direct Link (URL)</label>
-<input type="url" id="setting-line-url" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400">
+<input type="text" id="setting-line-url" placeholder="เช่น https://lin.ee/xxxx" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400">
 </div>
 <div class="sm:col-span-2">
 <label class="block text-xs font-bold text-amber-950 mb-1 flex items-center gap-2">
@@ -740,7 +740,7 @@ animation: none !important;
 <input type="text" id="prod-title" required class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold">
 </div>
 <div>
-<label class="block text-xs font-bold text-amber-950 mb-1">แนว</label>
+<label class="block text-xs font-bold text-amber-950 mb-1">แนวงาน</label>
 <select id="prod-category" required class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold"></select>
 </div>
 <div>
@@ -822,7 +822,7 @@ animation: none !important;
 <button onclick="closeModal('modal-admin-category')" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
 <h3 class="text-lg font-extrabold text-amber-950">จัดการแนวงาน</h3>
 <form onsubmit="addCategory(event)" class="flex gap-2">
-<input type="text" id="new-category-name" required placeholder="ชื่อแนวใหม่" class="flex-1 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold">
+<input type="text" id="new-category-name" required placeholder="ชื่อแนวงานใหม่" class="flex-1 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold">
 <button type="submit" id="add-category-btn" class="px-4 py-2 bg-amber-400 font-extrabold rounded-xl border border-amber-500">เพิ่ม</button>
 </form>
 <div id="category-list-manage" class="space-y-2 max-h-40 overflow-y-auto"></div>
@@ -1457,7 +1457,7 @@ function renderLineItemForms() {
         const catDiv = document.createElement('div');
         const catLbl = document.createElement('label');
         catLbl.className = 'block text-[10px] font-bold text-amber-900 mb-1';
-        catLbl.textContent = 'แนว';
+        catLbl.textContent = 'แนวงาน';
         catDiv.appendChild(catLbl);
         const catSel = document.createElement('select');
         catSel.className = 'item-cat w-full p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold';
@@ -1561,7 +1561,14 @@ function copyLineText() {
     showToast('คัดลอกข้อความแล้ว!');
 }
 function openLineOAWithCurrentMessage() { copyLineText(); openLineOA(); }
-function openLineOA() { window.open(appState.settings.lineUrl, '_blank'); }
+function openLineOA() { 
+    const url = appState.settings.lineUrl;
+    if(url && url.trim() !== '') {
+        window.open(url, '_blank'); 
+    } else {
+        showToast('แอดมินยังไม่ได้ตั้งค่าลิงก์ LINE', 'error');
+    }
+}
 
 // ==================== ADMIN PANEL & SUPABASE AUTH ====================
 async function handleAdminLogin(e) {
@@ -1787,21 +1794,39 @@ async function saveSettings(e) {
     if(!supabaseClient) return;
     const btn = document.getElementById('save-settings-btn');
     btn.disabled = true;
+    
+    let urlVal = document.getElementById('setting-line-url').value.trim();
+    // เติม https:// ให้อัตโนมัติถ้าแอดมินลืมพิมพ์
+    if (urlVal && !urlVal.startsWith('http://') && !urlVal.startsWith('https://')) {
+        urlVal = 'https://' + urlVal;
+        document.getElementById('setting-line-url').value = urlVal;
+    }
+
+    const storeNameVal = document.getElementById('setting-store-name').value.trim();
+    const lineIdVal = document.getElementById('setting-line-id').value.trim();
+    const noticeTextVal = document.getElementById('setting-notice-text').value.trim();
+
+    // 1. อัปเดตในระบบหน้าเว็บทันที (เพื่อให้ใช้งานปุ่มลิงก์ LINE ได้เลยโดยไม่ต้องรอรีเฟรช)
+    appState.settings.storeName = storeNameVal || 'JUMBOO SHOP 🌼';
+    appState.settings.lineId = lineIdVal;
+    appState.settings.lineUrl = urlVal;
+    appState.settings.noticeText = noticeTextVal;
+    applyStoreSettings();
+
     try {
         const newSettings = [
-            { key: 'storeName', value: document.getElementById('setting-store-name').value.trim() },
-            { key: 'lineId', value: document.getElementById('setting-line-id').value.trim() },
-            { key: 'lineUrl', value: document.getElementById('setting-line-url').value.trim() },
-            { key: 'noticeText', value: document.getElementById('setting-notice-text').value.trim() }
+            { key: 'storeName', value: storeNameVal },
+            { key: 'lineId', value: lineIdVal },
+            { key: 'lineUrl', value: urlVal },
+            { key: 'noticeText', value: noticeTextVal }
         ];
         for (let s of newSettings) {
             await supabaseClient.from('settings').upsert(s, { onConflict: 'key' });
         }
         showToast('บันทึกการตั้งค่าเรียบร้อยแล้ว');
-        await fetchSupabaseData(); // Reload to update UI
     } catch (err) {
         console.error("Save settings error:", err);
-        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+        showToast('อัปเดตหน้าเว็บแล้ว แต่บันทึกลงฐานข้อมูลขัดข้อง', 'error');
     } finally {
         btn.disabled = false;
     }
@@ -2113,7 +2138,7 @@ async function addCategory(e) {
             const { error } = await supabaseClient.from('categories').insert([{ name: cName }]);
             if (error) throw error;
             cInput.value = '';
-            showToast('เพิ่มแนวสำเร็จ');
+            showToast('เพิ่มแนวงานสำเร็จ');
             await fetchSupabaseData();
             renderCatManage();
         } catch (err) {
@@ -2128,11 +2153,11 @@ async function addCategory(e) {
 }
 
 async function deleteCategory(c) {
-    if(!confirm('ยืนยันการลบแนวนี้ใช่หรือไม่?') || !supabaseClient) return;
+    if(!confirm('ยืนยันการลบแนวงานนี้ใช่หรือไม่?') || !supabaseClient) return;
     try {
         const { error } = await supabaseClient.from('categories').delete().eq('name', c);
         if (error) throw error;
-        showToast('ลบแนวเรียบร้อย');
+        showToast('ลบแนวงานเรียบร้อย');
         await fetchSupabaseData();
         renderCatManage();
     } catch (err) {
