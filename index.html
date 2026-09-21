@@ -862,20 +862,21 @@ function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
 }
 
-function showToast(msg, type = 'success') {
+function showToast(msg, type = 'success', duration = 4000) {
     const container = document.getElementById('toast-container');
     if(!container) return;
     const toast = document.createElement('div');
-    toast.className = `px-4 py-3 rounded-2xl shadow-lg border text-sm font-extrabold flex items-center gap-2 transform translate-y-2 opacity-0 transition-all ${type === 'success' ? 'bg-amber-400 text-amber-950 border-amber-500' : 'bg-red-500 text-white border-red-600'}`;
+    toast.className = `px-4 py-3 rounded-2xl shadow-lg border text-sm font-extrabold flex items-center gap-2 transform translate-y-2 opacity-0 transition-all ${type === 'success' ? 'bg-amber-400 text-amber-950 border-amber-500' : 'bg-red-500 text-white border-red-600 max-w-sm'}`;
     const icon = document.createElement('i');
     icon.className = `fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}`;
     toast.appendChild(icon);
     const span = document.createElement('span');
     span.textContent = msg;
+    span.className = 'break-words';
     toast.appendChild(span);
     container.appendChild(toast);
     setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
-    setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, 4000);
+    setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, duration);
 }
 
 function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
@@ -1573,15 +1574,6 @@ async function handleAdminLogin(e) {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
         if (data && data.user) {
-            if (data.user.id === '54e892b5-bea6-45c4-aadc-23c6ea5e2939') {
-                appState.isAdminLoggedIn = true;
-                document.getElementById('admin-login-card').classList.add('hidden');
-                document.getElementById('admin-panel-content').classList.remove('hidden');
-                renderAdminTables();
-                showToast('เข้าสู่ระบบแอดมินเรียบร้อย');
-                return;
-            }
-            
             const { data: isAdmin, error: rpcError } = await supabaseClient.rpc('is_admin', { user_id: data.user.id });
             if (rpcError) {
                 await supabaseClient.auth.signOut();
@@ -1600,8 +1592,9 @@ async function handleAdminLogin(e) {
         }
     } catch (err) {
         console.error("Login error:", err);
+        // Error handling for login
         const msg = err.message === 'Invalid login credentials' ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง ไม่มีในระบบ!' : err.message;
-        showToast(msg, 'error');
+        showToast(msg, 'error', 5000);
     } finally {
         loginBtn.disabled = false;
         loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ';
@@ -1797,13 +1790,13 @@ async function saveSettings(e) {
         await fetchSupabaseData(); // Reload to update UI
     } catch (err) {
         console.error("Save settings error:", err);
-        showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถบันทึกได้'), 'error');
+        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
     } finally {
         btn.disabled = false;
     }
 }
 
-// Image Handling (with auto compression for large iPad photos)
+// Image Handling (with aggressive compression for large iPad photos)
 function handleImageUpload(e) {
     const file = e.target.files[0];
     if(!file) return;
@@ -1816,8 +1809,9 @@ function handleImageUpload(e) {
         const img = new Image();
         img.onload = function() {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800; // ลดขนาดเพื่อให้ Payload เล็กพอส่งให้ Supabase ได้
-            const MAX_HEIGHT = 800;
+            // AGGRESSIVE COMPRESSION: Limit size to 500px to ensure it fits in Supabase
+            const MAX_WIDTH = 500; 
+            const MAX_HEIGHT = 500;
             let width = img.width;
             let height = img.height;
 
@@ -1842,8 +1836,8 @@ function handleImageUpload(e) {
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Compress to JPEG, quality 0.7
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            // AGGRESSIVE COMPRESSION: Compress to JPEG, quality 0.5
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
             
             document.getElementById('prod-image-base64').value = compressedBase64;
             const previewImg = document.getElementById('prod-image-preview');
@@ -1952,11 +1946,14 @@ async function saveAdminProduct(e) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Save product error:", err);
-        let errorMsg = 'เกิดข้อผิดพลาดในการบันทึกสินค้า';
+        // แสดง ERROR ชัดๆ ว่าพังเพราะอะไร จะได้แก้ถูกจุด
+        let errorMsg = 'ข้อผิดพลาด: ' + (err.message || 'ไม่ทราบสาเหตุ');
         if (err.message && (err.message.includes('Payload Too Large') || err.message.includes('413'))) {
-            errorMsg = 'รูปภาพมีขนาดใหญ่เกินไป (แม้จะย่อแล้ว) กรุณาใช้วิธีวางลิงก์ (URL) แทน';
+            errorMsg = 'รูปภาพใหญ่เกินไป กรุณาใช้ลิงก์รูป (URL) แทนครับ';
+        } else if (err.message && err.message.includes('row-level security')) {
+             errorMsg = 'ติดสิทธิ์ RLS ในฐานข้อมูล กรุณารันคำสั่ง SQL ปลดล็อคก่อนครับ';
         }
-        showToast(errorMsg, 'error');
+        showToast(errorMsg, 'error', 6000);
     } finally {
         btn.disabled = false;
     }
@@ -1971,7 +1968,7 @@ async function deleteAdminProduct(id) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Delete product error:", err);
-        showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถลบได้'), 'error');
+        showToast('เกิดข้อผิดพลาดในการลบ: ' + (err.message || ''), 'error');
     }
 }
 
@@ -2020,7 +2017,7 @@ async function saveAdminPromotion(e) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Save promo error:", err);
-        showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถบันทึกได้'), 'error');
+        showToast('ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถบันทึกได้'), 'error');
     } finally {
         btn.disabled = false;
     }
@@ -2035,7 +2032,7 @@ async function deleteAdminPromotion(id) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Delete promo error:", err);
-        showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถลบได้'), 'error');
+        showToast('ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถลบได้'), 'error');
     }
 }
 
@@ -2093,7 +2090,7 @@ async function saveAdminQueue(e) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Save queue error:", err);
-        showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถบันทึกได้'), 'error');
+        showToast('ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถบันทึกได้'), 'error');
     } finally {
         btn.disabled = false;
     }
@@ -2108,7 +2105,7 @@ async function deleteAdminQueue(id) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Delete queue error:", err);
-        showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถลบได้'), 'error');
+        showToast('ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถลบได้'), 'error');
     }
 }
 
@@ -2153,7 +2150,7 @@ async function addCategory(e) {
             renderCatManage();
         } catch (err) {
             console.error("Add category error:", err);
-            showToast('เกิดข้อผิดพลาดในการเพิ่ม', 'error');
+            showToast('ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถเพิ่มได้'), 'error');
         } finally {
             btn.disabled = false;
         }
@@ -2172,7 +2169,7 @@ async function deleteCategory(c) {
         renderCatManage();
     } catch (err) {
         console.error("Delete category error:", err);
-        showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+        showToast('ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถลบได้'), 'error');
     }
 }
 
