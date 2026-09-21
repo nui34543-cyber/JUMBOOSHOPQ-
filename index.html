@@ -186,7 +186,7 @@ animation: none !important;
 </div>
 <div class="text-sm sm:text-base text-red-900 leading-relaxed">
 <strong class="font-bold block text-lg mb-1 text-red-700">📌 ประกาศสำคัญจากร้านค้า:</strong>
-<span id="display-notice-text" class="font-medium">กำลังโหลดประกาศ...</span>
+<span id="display-notice-text" class="font-medium whitespace-pre-line">กำลังโหลดประกาศ...</span>
 </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1002,6 +1002,7 @@ async function bootApp() {
 async function checkAdminAndSetState(user) {
     if (!supabaseClient) return;
     try {
+        // ให้สิทธิ์อีเมลแอดมินของคุณ (54e892b5...) ข้ามการเช็ค is_admin
         if (user.id === '54e892b5-bea6-45c4-aadc-23c6ea5e2939') {
             appState.isAdminLoggedIn = true;
             document.getElementById('admin-login-card')?.classList.add('hidden');
@@ -1594,7 +1595,7 @@ async function handleAdminLogin(e) {
         console.error("Login error:", err);
         // Error handling for login
         const msg = err.message === 'Invalid login credentials' ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง ไม่มีในระบบ!' : err.message;
-        showToast(msg, 'error', 5000);
+        showToast(msg, 'error');
     } finally {
         loginBtn.disabled = false;
         loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ';
@@ -1776,21 +1777,39 @@ async function saveSettings(e) {
     if(!supabaseClient) return;
     const btn = document.getElementById('save-settings-btn');
     btn.disabled = true;
+    
     try {
+        // แก้ไขให้เติม https:// อัตโนมัติถ้าลืม
+        let urlVal = document.getElementById('setting-line-url').value.trim();
+        if(urlVal && !urlVal.startsWith('http')) {
+            urlVal = 'https://' + urlVal;
+            document.getElementById('setting-line-url').value = urlVal;
+        }
+
         const newSettings = [
             { key: 'storeName', value: document.getElementById('setting-store-name').value.trim() },
             { key: 'lineId', value: document.getElementById('setting-line-id').value.trim() },
-            { key: 'lineUrl', value: document.getElementById('setting-line-url').value.trim() },
+            { key: 'lineUrl', value: urlVal },
             { key: 'noticeText', value: document.getElementById('setting-notice-text').value.trim() }
         ];
+        
         for (let s of newSettings) {
-            await supabaseClient.from('settings').upsert(s, { onConflict: 'key' });
+            // ดักจับ Error ตรงนี้ให้รู้ว่าพังหรือไม่
+            const { error } = await supabaseClient.from('settings').upsert(s, { onConflict: 'key' });
+            if (error) throw error; 
         }
+        
+        // อัปเดตหน้าจอทันที ไม่ต้องรอโหลดเว็บใหม่
+        appState.settings.storeName = newSettings[0].value;
+        appState.settings.lineId = newSettings[1].value;
+        appState.settings.lineUrl = newSettings[2].value;
+        appState.settings.noticeText = newSettings[3].value;
+        applyStoreSettings();
+
         showToast('บันทึกการตั้งค่าเรียบร้อยแล้ว');
-        await fetchSupabaseData(); // Reload to update UI
     } catch (err) {
         console.error("Save settings error:", err);
-        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+        showToast('เกิดข้อผิดพลาดในการบันทึก: ' + (err.message || 'ตาราง settings อาจจะยังไม่ถูกสร้าง หรือติดสิทธิ์'), 'error');
     } finally {
         btn.disabled = false;
     }
@@ -1805,11 +1824,10 @@ function handleImageUpload(e) {
     
     const reader = new FileReader();
     reader.onload = function(uploadEvent) {
-        // Compress image using Canvas
         const img = new Image();
         img.onload = function() {
             const canvas = document.createElement('canvas');
-            // AGGRESSIVE COMPRESSION: Limit size to 500px to ensure it fits in Supabase
+            // ย่อให้เล็กกว่าเดิมอีก (500px) เพื่อให้ผ่าน Supabase 100%
             const MAX_WIDTH = 500; 
             const MAX_HEIGHT = 500;
             let width = img.width;
@@ -1831,13 +1849,13 @@ function handleImageUpload(e) {
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             
-            // Fill background with white (prevents transparent PNGs turning black)
+            // พื้นหลังขาว
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
             
-            // AGGRESSIVE COMPRESSION: Compress to JPEG, quality 0.5
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+            // บีบอัดหนักๆ (0.4)
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
             
             document.getElementById('prod-image-base64').value = compressedBase64;
             const previewImg = document.getElementById('prod-image-preview');
@@ -1946,14 +1964,14 @@ async function saveAdminProduct(e) {
         await fetchSupabaseData();
     } catch (err) {
         console.error("Save product error:", err);
-        // แสดง ERROR ชัดๆ ว่าพังเพราะอะไร จะได้แก้ถูกจุด
+        
         let errorMsg = 'ข้อผิดพลาด: ' + (err.message || 'ไม่ทราบสาเหตุ');
         if (err.message && (err.message.includes('Payload Too Large') || err.message.includes('413'))) {
             errorMsg = 'รูปภาพใหญ่เกินไป กรุณาใช้ลิงก์รูป (URL) แทนครับ';
         } else if (err.message && err.message.includes('row-level security')) {
              errorMsg = 'ติดสิทธิ์ RLS ในฐานข้อมูล กรุณารันคำสั่ง SQL ปลดล็อคก่อนครับ';
         }
-        showToast(errorMsg, 'error', 6000);
+        showToast(errorMsg, 'error');
     } finally {
         btn.disabled = false;
     }
