@@ -97,7 +97,7 @@ animation: none !important;
 <i class="fa-solid fa-store text-amber-900 text-xl"></i>
 </div>
 <div>
-<span id="nav-store-name" class="font-bold text-xl text-amber-950 block leading-tight">JUMBOO SHOP 🌼</span>
+<span id="nav-store-name" class="font-bold text-xl text-amber-950 block leading-tight">กำลังโหลด...</span>
 <span class="text-xs text-amber-700 font-normal">Showcase & Order Queue System</span>
 </div>
 </div>
@@ -920,18 +920,19 @@ async function fetchSupabaseData() {
     setGridLoading('queue-list-container');
 
     try {
-        // 1. Fetch Settings
+        // 1. Fetch Settings (Fix: Handle empty table scenario)
         const { data: settingsData, error: settingsError } = await supabaseClient.from('settings').select('*');
-        if (!settingsError && settingsData && settingsData.length > 0) {
-            const sMap = {};
+        const sMap = {};
+        if (!settingsError && settingsData) {
             settingsData.forEach(row => { sMap[row.key] = row.value; });
-            appState.settings = {
-                storeName: sMap['storeName'] || 'JUMBOO SHOP 🌼',
-                lineId: sMap['lineId'] || '',
-                lineUrl: sMap['lineUrl'] || '',
-                noticeText: sMap['noticeText'] || 'ไม่มีประกาศในขณะนี้'
-            };
         }
+        
+        appState.settings = {
+            storeName: sMap['storeName'] || 'JUMBOO SHOP 🌼',
+            lineId: sMap['lineId'] || '',
+            lineUrl: sMap['lineUrl'] || '',
+            noticeText: sMap['noticeText'] || 'ไม่มีประกาศในขณะนี้'
+        };
         applyStoreSettings();
 
         // 2. Fetch Categories
@@ -1779,7 +1780,6 @@ async function saveSettings(e) {
     btn.disabled = true;
     
     try {
-        // แก้ไขให้เติม https:// อัตโนมัติถ้าลืม
         let urlVal = document.getElementById('setting-line-url').value.trim();
         if(urlVal && !urlVal.startsWith('http')) {
             urlVal = 'https://' + urlVal;
@@ -1794,12 +1794,10 @@ async function saveSettings(e) {
         ];
         
         for (let s of newSettings) {
-            // ดักจับ Error ตรงนี้ให้รู้ว่าพังหรือไม่
             const { error } = await supabaseClient.from('settings').upsert(s, { onConflict: 'key' });
             if (error) throw error; 
         }
         
-        // อัปเดตหน้าจอทันที ไม่ต้องรอโหลดเว็บใหม่
         appState.settings.storeName = newSettings[0].value;
         appState.settings.lineId = newSettings[1].value;
         appState.settings.lineUrl = newSettings[2].value;
@@ -1815,7 +1813,7 @@ async function saveSettings(e) {
     }
 }
 
-// Image Handling (with aggressive compression for large iPad photos)
+// Image Handling
 function handleImageUpload(e) {
     const file = e.target.files[0];
     if(!file) return;
@@ -1827,7 +1825,6 @@ function handleImageUpload(e) {
         const img = new Image();
         img.onload = function() {
             const canvas = document.createElement('canvas');
-            // ย่อให้เล็กกว่าเดิมอีก (500px) เพื่อให้ผ่าน Supabase 100%
             const MAX_WIDTH = 500; 
             const MAX_HEIGHT = 500;
             let width = img.width;
@@ -1849,12 +1846,10 @@ function handleImageUpload(e) {
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             
-            // พื้นหลังขาว
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
             
-            // บีบอัดหนักๆ (0.4)
             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
             
             document.getElementById('prod-image-base64').value = compressedBase64;
