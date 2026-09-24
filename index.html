@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 tailwind.config = {
     theme: {
@@ -20,32 +21,89 @@ tailwind.config = {
     }
 }
 </script>
+
 <style>
-body { font-family: 'Kanit', 'Prompt', sans-serif; background-color: #fffef7; color: #78350f; }
+body { font-family: 'Kanit', 'Prompt', sans-serif; background-color: #fffef7; color: #78350f; overflow-x: hidden; }
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #fef9c3; border-radius: 12px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #fcd34d; border-radius: 12px; }
 .badge-pulse { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 @keyframes pulse-ring { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.88; transform: scale(1.03); } }
-@keyframes wiggle { 0% { transform: rotate(0deg); } 25% { transform: rotate(-3deg) scale(1.02); } 50% { transform: rotate(3deg) scale(1.02); } 75% { transform: rotate(-3deg) scale(1.01); } 100% { transform: rotate(0deg); } }
-.wiggle-hover:hover { animation: wiggle 0.4s ease-in-out infinite; }
+
 .paper-card { background: #ffffff; border: 2px solid #fef08a; border-radius: 24px; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.08); transition: all 0.2s ease; }
 .premium-card { background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%); border: 2px solid #fbbf24; box-shadow: 0 8px 25px rgba(251, 191, 36, 0.15); }
 button:active, .paper-card:active { transform: scale(0.97) !important; transition: transform 0.1s ease !important; }
 button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; animation: none !important; }
+
+@keyframes fallDown {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.85; }
+    90% { opacity: 0.85; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+.falling-decoration {
+    position: fixed;
+    top: -10%;
+    z-index: 9999;
+    pointer-events: none;
+    user-select: none;
+    animation: fallDown linear forwards;
+    border-radius: 50px;
+    filter: drop-shadow(0 2px 4px rgba(251,191,36,0.15));
+}
+
+.click-ripple {
+    position: fixed;
+    border: 2px solid rgba(251, 191, 36, 0.7);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    transform: translate(-50%, -50%);
+    animation: rippleEffect 0.5s ease-out forwards;
+}
+@keyframes rippleEffect {
+    0% { width: 0px; height: 0px; opacity: 1; border-width: 3px; }
+    100% { width: 50px; height: 50px; opacity: 0; border-width: 1px; }
+}
+
+.mouse-trail-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9998;
+    border-radius: 50%;
+    animation: trailFade 0.6s ease-out forwards;
+}
+@keyframes trailFade {
+    0% { transform: scale(1) translateY(0); opacity: 0.6; }
+    100% { transform: scale(0) translateY(15px); opacity: 0; }
+}
 </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-amber-200">
 
-<div class="bg-amber-100 border-b border-amber-200 text-amber-900 text-xs sm:text-sm py-2.5 px-4 text-center font-medium shadow-xs">
+<div class="bg-amber-100 border-b border-amber-200 text-amber-900 text-xs sm:text-sm py-2.5 px-4 text-center font-medium shadow-xs relative z-40">
     <i class="fa-solid fa-circle-info text-amber-600 mr-1.5"></i>
     เว็บไซต์นี้สำหรับดูตัวอย่างสินค้าและเช็คคิวเท่านั้น สั่งซื้อสินค้าผ่านทาง <span id="top-banner-line-id" class="font-bold underline text-green-700"></span> เท่านั้น
+</div>
+
+<div id="global-notice-container" class="bg-red-50 border-b-2 border-red-300 px-4 py-3 shadow-sm transition-all duration-300 hidden relative z-30 flex items-center justify-center">
+    <div class="max-w-7xl mx-auto flex items-start sm:items-center gap-3">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200 shadow-xs text-sm sm:text-base"><i class="fa-solid fa-bullhorn"></i></div>
+        <div class="text-xs sm:text-sm text-red-900 leading-relaxed font-medium">
+            <strong class="font-bold text-red-700 mr-1">ประกาศ:</strong>
+            <span id="display-notice-home" class="whitespace-pre-line hidden"></span>
+            <span id="display-notice-storefront" class="whitespace-pre-line hidden"></span>
+            <span id="display-notice-promotions" class="whitespace-pre-line hidden"></span>
+            <span id="display-notice-queue" class="whitespace-pre-line hidden"></span>
+            <span id="display-notice-line" class="whitespace-pre-line hidden"></span>
+        </div>
+    </div>
 </div>
 
 <header class="sticky top-0 z-40 bg-amber-50/95 backdrop-blur-md border-b border-amber-200 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
-            <div class="flex items-center gap-3 cursor-pointer wiggle-hover" onclick="switchTab('home')">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
                 <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-300 to-yellow-200 flex items-center justify-center shadow-inner border-2 border-amber-300">
                     <i class="fa-solid fa-store text-amber-900 text-xl"></i>
                 </div>
@@ -55,12 +113,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                 </div>
             </div>
             <nav class="hidden md:flex items-center gap-2">
-                <button onclick="switchTab('home')" id="nav-btn-home" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 bg-amber-200 text-amber-950 shadow-sm border border-amber-300 wiggle-hover"><i class="fa-solid fa-house text-amber-600"></i> หน้าแรก</button>
-                <button onclick="switchTab('storefront')" id="nav-btn-storefront" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-transparent wiggle-hover"><i class="fa-solid fa-table-cells-large text-amber-600"></i> สินค้าทั้งหมด</button>
-                <button onclick="switchTab('promotions')" id="nav-btn-promotions" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-transparent wiggle-hover"><i class="fa-solid fa-tags text-rose-600"></i> โปรโมชั่น</button>
-                <button onclick="switchTab('queue')" id="nav-btn-queue" class="nav-tab-btn px-5 py-2.5 rounded-2xl font-semibold text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-amber-300 to-yellow-300 hover:from-amber-400 hover:to-yellow-400 text-amber-950 shadow-md hover:shadow-lg border-2 border-amber-300 badge-pulse wiggle-hover"><i class="fa-solid fa-list-check text-amber-900"></i> ตรวจสถานะงาน</button>
-                <button onclick="switchTab('line')" id="nav-btn-line" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-transparent wiggle-hover"><i class="fa-brands fa-line text-green-600 text-lg"></i> สั่งผ่าน LINE OA</button>
-                <button onclick="switchTab('admin')" id="nav-btn-admin" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-dashed border-amber-300 wiggle-hover"><i class="fa-solid fa-user-gear"></i> หน้าแอดมิน</button>
+                <button onclick="switchTab('home')" id="nav-btn-home" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 bg-amber-200 text-amber-950 shadow-sm border border-amber-300"><i class="fa-solid fa-house text-amber-600"></i> หน้าแรก</button>
+                <button onclick="switchTab('storefront')" id="nav-btn-storefront" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-transparent"><i class="fa-solid fa-table-cells-large text-amber-600"></i> สินค้าทั้งหมด</button>
+                <button onclick="switchTab('promotions')" id="nav-btn-promotions" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-transparent"><i class="fa-solid fa-tags text-rose-600"></i> โปรโมชั่น</button>
+                <button onclick="switchTab('queue')" id="nav-btn-queue" class="nav-tab-btn px-5 py-2.5 rounded-2xl font-semibold text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-amber-300 to-yellow-300 hover:from-amber-400 hover:to-yellow-400 text-amber-950 shadow-md hover:shadow-lg border-2 border-amber-300 badge-pulse"><i class="fa-solid fa-list-check text-amber-900"></i> ตรวจสถานะงาน</button>
+                <button onclick="switchTab('line')" id="nav-btn-line" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-transparent"><i class="fa-brands fa-line text-green-600 text-lg"></i> สั่งผ่าน LINE OA</button>
+                <button onclick="switchTab('admin')" id="nav-btn-admin" class="nav-tab-btn px-4 py-2.5 rounded-2xl font-medium text-sm transition-all flex items-center gap-2 text-amber-900 hover:bg-amber-100 border border-dashed border-amber-300"><i class="fa-solid fa-user-gear"></i> หน้าแอดมิน</button>
             </nav>
             <button onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-2xl text-amber-900 hover:bg-amber-100 focus:outline-none border border-amber-200"><i class="fa-solid fa-bars text-xl"></i></button>
         </div>
@@ -75,35 +133,39 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
     </div>
 </header>
 
-<main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
 
-<div id="global-notice-container" class="bg-red-50 border-2 border-red-300 p-5 rounded-[24px] flex items-start gap-4 shadow-sm mb-8 hidden transition-all duration-300">
-    <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5 border border-red-200 shadow-xs text-xl"><i class="fa-solid fa-bullhorn"></i></div>
-    <div class="text-sm sm:text-base text-red-900 leading-relaxed w-full">
-        <strong class="font-bold block text-lg mb-1 text-red-700">📌 ประกาศจากร้านค้า:</strong>
-        <div id="display-notice-home" class="font-medium whitespace-pre-line hidden"></div>
-        <div id="display-notice-storefront" class="font-medium whitespace-pre-line hidden"></div>
-        <div id="display-notice-promotions" class="font-medium whitespace-pre-line hidden"></div>
-        <div id="display-notice-queue" class="font-medium whitespace-pre-line hidden"></div>
-        <div id="display-notice-line" class="font-medium whitespace-pre-line hidden"></div>
-    </div>
-</div>
-
-<section id="tab-home" class="tab-content space-y-8">
+<section id="tab-home" class="tab-content space-y-6">
     <div class="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-200 border-2 border-amber-300 p-8 sm:p-12 shadow-sm text-center">
-        <div class="relative z-10 max-w-2xl mx-auto space-y-5">
+        <div class="relative z-10 max-w-2xl mx-auto space-y-4">
             <span class="inline-block px-5 py-2 rounded-full bg-white/90 text-amber-900 text-xs font-bold tracking-wide border border-amber-200 shadow-xs">✨ สินค้าสุดน่ารัก พร้อมส่ง / พรีออเดอร์</span>
+            
+            <div id="home-store-status-container" class="flex justify-center mt-2 mb-2"></div>
+
             <h1 class="text-3xl sm:text-5xl font-extrabold text-amber-950 leading-tight">สั่งซื้อผ่าน LINE ง่ายๆ</h1>
             <p class="text-base text-amber-900/90 font-medium">เช็คคิวได้ อัปเดตสถานะตลอด ปลอดภัย 100% <br class="hidden sm:inline">สอบถาม / สั่งซื้อ / เช็คคิว ผ่านระบบด้านล่างได้เลยนะคะ 💛</p>
             <div class="pt-4 flex flex-wrap justify-center gap-4">
-                <button onclick="switchTab('storefront')" class="px-8 py-3.5 rounded-2xl bg-white hover:bg-amber-50 text-amber-950 font-bold shadow-sm transition flex items-center gap-2 border-2 border-amber-300 wiggle-hover"><i class="fa-solid fa-box-open text-amber-600"></i> ดูสินค้าทั้งหมด</button>
-                <button onclick="switchTab('promotions')" class="px-8 py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-sm transition flex items-center gap-2 wiggle-hover border-2 border-rose-600"><i class="fa-solid fa-tags text-xl"></i> ดูโปรโมชั่น</button>
-                <button onclick="openLineOA()" class="px-8 py-3.5 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold shadow-sm transition flex items-center gap-2 wiggle-hover border-2 border-green-600"><i class="fa-brands fa-line text-xl"></i> แอดไลน์สั่งซื้อ</button>
+                <button onclick="switchTab('storefront')" class="px-8 py-3.5 rounded-2xl bg-white hover:bg-amber-50 text-amber-950 font-bold shadow-sm transition flex items-center gap-2 border-2 border-amber-300"><i class="fa-solid fa-box-open text-amber-600"></i> ดูสินค้าทั้งหมด</button>
+                <button onclick="switchTab('promotions')" class="px-8 py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-sm transition flex items-center gap-2 border-2 border-rose-600"><i class="fa-solid fa-tags text-xl"></i> ดูโปรโมชั่น</button>
+                <button onclick="openLineOA()" class="px-8 py-3.5 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold shadow-sm transition flex items-center gap-2 border-2 border-green-600"><i class="fa-brands fa-line text-xl"></i> แอดไลน์สั่งซื้อ</button>
             </div>
         </div>
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="paper-card p-5 sm:p-6 mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 bg-gradient-to-r from-amber-50 to-white">
+        <div class="flex items-center gap-3 w-full lg:w-auto">
+            <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xl border border-amber-200 shadow-xs shrink-0"><i class="fa-solid fa-chart-simple"></i></div>
+            <div class="text-left">
+                <h3 class="font-extrabold text-lg text-amber-950 leading-tight">สถานะคิวงานปัจจุบัน</h3>
+                <p class="text-[11px] sm:text-xs text-amber-800 font-medium mt-0.5">สรุปยอดคิวทั้งหมดที่กำลังดำเนินการ</p>
+            </div>
+        </div>
+        <div id="home-queue-summary" class="flex flex-wrap items-center justify-center lg:justify-end gap-2 w-full lg:w-auto">
+            <!-- JS inserts summary badges here -->
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <div class="paper-card p-8 bg-amber-50/50">
             <div class="flex items-center gap-3 mb-4 border-b border-amber-200 pb-3">
                 <div class="w-10 h-10 rounded-full bg-amber-300 flex items-center justify-center text-amber-950 text-lg border border-amber-400 shadow-xs"><i class="fa-solid fa-magnifying-glass"></i></div>
@@ -112,7 +174,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
             <p class="text-sm text-amber-900 mb-4 font-medium">กรอกรหัสคิว เช่น JB0001-Q หรือชื่อของคุณเพื่อดูสถานะล่าสุด</p>
             <form onsubmit="event.preventDefault(); quickCheckQueue();" class="flex flex-col sm:flex-row gap-3">
                 <input type="text" id="home-queue-search" placeholder="กรอกรหัสคิว หรือ ชื่อลูกค้า..." class="flex-1 px-4 py-3 bg-white border-2 border-amber-200 rounded-xl text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                <button type="submit" class="px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold shadow-sm transition border border-amber-500 wiggle-hover whitespace-nowrap">ค้นหาสถานะ</button>
+                <button type="submit" class="px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold shadow-sm transition border border-amber-500 whitespace-nowrap">ค้นหาสถานะ</button>
             </form>
         </div>
         <div class="paper-card p-8">
@@ -127,7 +189,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
         </div>
     </div>
     <div class="text-center pt-6">
-        <button onclick="switchTab('storefront')" class="px-10 py-4 rounded-full bg-gradient-to-r from-amber-300 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-extrabold text-lg shadow-md transition inline-flex items-center gap-3 border-2 border-amber-500 wiggle-hover">
+        <button onclick="switchTab('storefront')" class="px-10 py-4 rounded-full bg-gradient-to-r from-amber-300 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-extrabold text-lg shadow-md transition inline-flex items-center gap-3 border-2 border-amber-500">
             ไปดูรายการสินค้าทั้งหมดกันเลย! <i class="fa-solid fa-arrow-right"></i>
         </button>
     </div>
@@ -190,7 +252,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
 <section id="tab-line" class="tab-content space-y-8 hidden">
     <div class="max-w-3xl mx-auto space-y-6">
         <div class="text-center space-y-3">
-            <div class="w-16 h-16 bg-green-100 border-2 border-green-300 text-green-600 rounded-[24px] flex items-center justify-center mx-auto text-3xl shadow-sm wiggle-hover"><i class="fa-brands fa-line"></i></div>
+            <div class="w-16 h-16 bg-green-100 border-2 border-green-300 text-green-600 rounded-[24px] flex items-center justify-center mx-auto text-3xl shadow-sm"><i class="fa-brands fa-line"></i></div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-amber-950">ฟอร์มสร้างข้อความสั่งซื้อ (LINE OA)</h1>
             <p class="text-sm text-amber-900 font-medium">ตัวช่วยพิมพ์ข้อความ (ข้อมูลจะถูกบันทึกอัตโนมัติ ไม่ต้องกลัวหายเวลาสลับหน้า)</p>
         </div>
@@ -229,7 +291,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                     <label class="block text-sm font-bold text-amber-950">ใช้โค้ดส่วนลด / โค้ดลับ <span class="text-amber-700 font-normal text-xs">(ถ้ามี)</span></label>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="text" id="line-promo-input" placeholder="พิมพ์โค้ดส่วนลดที่นี่..." class="flex-1 px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 uppercase">
-                        <button type="button" onclick="validatePromoCode()" class="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold rounded-xl shadow-xs transition wiggle-hover border border-amber-500 whitespace-nowrap">ตรวจสอบโค้ด</button>
+                        <button type="button" onclick="validatePromoCode()" class="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold rounded-xl shadow-xs transition border border-amber-500 whitespace-nowrap">ตรวจสอบโค้ด</button>
                     </div>
                     <div id="promo-validation-msg" class="text-xs mt-1 empty:hidden"></div>
                 </div>
@@ -249,7 +311,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                     </div>
                 </div>
                 <div id="line-items-container" class="space-y-4 pt-1"></div>
-                <button type="submit" id="line-submit-btn" class="w-full py-3.5 rounded-2xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-extrabold text-base shadow-sm transition flex items-center justify-center gap-2 border-2 border-amber-400 wiggle-hover">
+                <button type="submit" id="line-submit-btn" class="w-full py-3.5 rounded-2xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-extrabold text-base shadow-sm transition flex items-center justify-center gap-2 border-2 border-amber-400">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> สรุปข้อความเตรียมส่ง LINE
                 </button>
             </form>
@@ -258,15 +320,15 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                 <label class="block text-sm font-bold text-amber-950 flex items-center gap-2"><i class="fa-solid fa-message text-green-600"></i> ข้อความที่พร้อมส่งไปยังแชท:</label>
                 <div id="line-formatted-text" class="p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl text-xs sm:text-sm font-mono font-medium text-amber-900 whitespace-pre-wrap leading-relaxed select-all"></div>
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button onclick="copyLineText()" class="flex-1 py-3 rounded-xl bg-white hover:bg-amber-50 text-amber-950 border border-amber-300 font-bold text-sm transition flex items-center justify-center gap-2 shadow-xs wiggle-hover"><i class="fa-solid fa-copy"></i> คัดลอกข้อความ</button>
-                    <button onclick="openLineOAWithCurrentMessage()" class="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 border border-green-600 wiggle-hover"><i class="fa-brands fa-line text-lg"></i> ไปที่ LINE OA ทันที</button>
+                    <button onclick="copyLineText()" class="flex-1 py-3 rounded-xl bg-white hover:bg-amber-50 text-amber-950 border border-amber-300 font-bold text-sm transition flex items-center justify-center gap-2 shadow-xs"><i class="fa-solid fa-copy"></i> คัดลอกข้อความ</button>
+                    <button onclick="openLineOAWithCurrentMessage()" class="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 border border-green-600"><i class="fa-brands fa-line text-lg"></i> ไปที่ LINE OA ทันที</button>
                 </div>
             </div>
         </div>
         
         <div class="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-300 p-5 rounded-[24px] flex items-center justify-between gap-4 shadow-sm">
             <div class="space-y-1"><div class="text-xs text-amber-900 font-bold">LINE Official Account ID:</div><div id="display-line-id" class="text-lg font-extrabold text-amber-950"></div></div>
-            <button onclick="openLineOA()" class="px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-bold transition shrink-0 flex items-center gap-2 shadow-sm border border-green-600 wiggle-hover"><i class="fa-brands fa-line text-lg"></i> แอดเพื่อน</button>
+            <button onclick="openLineOA()" class="px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-bold transition shrink-0 flex items-center gap-2 shadow-sm border border-green-600"><i class="fa-brands fa-line text-lg"></i> แอดเพื่อน</button>
         </div>
     </div>
 </section>
@@ -274,14 +336,14 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
 <section id="tab-admin" class="tab-content space-y-6 hidden">
     <!-- Admin Login -->
     <div id="admin-login-card" class="max-w-md mx-auto paper-card p-8 shadow-sm space-y-6 text-center bg-white">
-        <div class="w-16 h-16 bg-amber-100 border border-amber-300 rounded-2xl flex items-center justify-center mx-auto text-amber-700 text-2xl shadow-xs wiggle-hover"><i class="fa-solid fa-user-lock"></i></div>
+        <div class="w-16 h-16 bg-amber-100 border border-amber-300 rounded-2xl flex items-center justify-center mx-auto text-amber-700 text-2xl shadow-xs"><i class="fa-solid fa-user-lock"></i></div>
         <div><h2 class="text-2xl font-extrabold text-amber-950">เข้าสู่ระบบแอดมิน</h2><p class="text-xs text-amber-900 mt-1 font-medium">กรอกอีเมลและรหัสผ่านเพื่อเข้าสู่ระบบผ่าน Supabase Auth</p></div>
         <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-left">
             <div><label class="block text-xs font-bold text-amber-950 mb-1">อีเมลผู้ดูแลระบบ</label>
             <div class="relative"><i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 text-sm"></i><input type="email" id="admin-email" placeholder="admin@example.com" required class="w-full pl-10 pr-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"></div></div>
             <div><label class="block text-xs font-bold text-amber-950 mb-1">รหัสผ่าน</label>
             <div class="relative"><i class="fa-solid fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 text-sm"></i><input type="password" id="admin-password" placeholder="••••••••" required class="w-full pl-10 pr-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"></div></div>
-            <button type="submit" id="admin-login-btn" class="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold transition shadow-sm flex items-center justify-center gap-2 border border-amber-500 wiggle-hover"><i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ</button>
+            <button type="submit" id="admin-login-btn" class="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold transition shadow-sm flex items-center justify-center gap-2 border border-amber-500"><i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ</button>
         </form>
     </div>
 
@@ -292,7 +354,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                 <div class="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center text-amber-950 font-bold border border-amber-500"><i class="fa-solid fa-user-shield"></i></div>
                 <div><h2 class="font-extrabold text-lg text-amber-950">ระบบจัดการหลังบ้าน (Admin Panel)</h2><p class="text-xs text-amber-900 font-bold">สถานะ: <span class="text-green-700 bg-green-100 px-2 py-0.5 rounded-md border border-green-200">เข้าสู่ระบบแล้ว</span></p></div>
             </div>
-            <button onclick="adminLogout()" class="px-4 py-2 bg-white hover:bg-amber-50 text-amber-950 border border-amber-300 rounded-xl text-xs font-bold transition self-start sm:self-auto flex items-center gap-1.5 shadow-xs wiggle-hover"><i class="fa-solid fa-right-from-bracket text-red-500"></i> ออกจากระบบ</button>
+            <button onclick="adminLogout()" class="px-4 py-2 bg-white hover:bg-amber-50 text-amber-950 border border-amber-300 rounded-xl text-xs font-bold transition self-start sm:self-auto flex items-center gap-1.5 shadow-xs"><i class="fa-solid fa-right-from-bracket text-red-500"></i> ออกจากระบบ</button>
         </div>
         
         <div class="flex flex-wrap border-b border-amber-200 gap-2">
@@ -306,8 +368,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h3 class="font-extrabold text-amber-950 text-base">รายการสินค้าทั้งหมด</h3>
                 <div class="flex items-center gap-2">
-                    <button onclick="openCategoryModal()" class="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-300 wiggle-hover"><i class="fa-solid fa-tags"></i> แนวงาน</button>
-                    <button onclick="openProductModal()" class="px-4 py-2.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-400 wiggle-hover"><i class="fa-solid fa-plus"></i> เพิ่มสินค้า</button>
+                    <button onclick="openCategoryModal()" class="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-300"><i class="fa-solid fa-tags"></i> แนวงาน</button>
+                    <button onclick="openProductModal()" class="px-4 py-2.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-400"><i class="fa-solid fa-plus"></i> เพิ่มสินค้า</button>
                 </div>
             </div>
             <div class="paper-card overflow-hidden bg-white">
@@ -323,7 +385,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
         <div id="admin-sub-promotions" class="admin-sub-content space-y-4 hidden">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h3 class="font-extrabold text-amber-950 text-base">รายการโปรโมชั่น & คูปองทั้งหมด</h3>
-                <button onclick="openPromotionModal()" class="px-4 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-rose-600 wiggle-hover"><i class="fa-solid fa-plus"></i> เพิ่มโปรโมชั่น</button>
+                <button onclick="openPromotionModal()" class="px-4 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-rose-600"><i class="fa-solid fa-plus"></i> เพิ่มโปรโมชั่น</button>
             </div>
             <div class="paper-card overflow-hidden bg-white">
                 <div class="overflow-x-auto">
@@ -338,7 +400,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
         <div id="admin-sub-queues" class="admin-sub-content space-y-4 hidden">
             <div class="flex items-center justify-between">
                 <h3 class="font-extrabold text-amber-950 text-base">รายการคิวงาน <span class="text-xs text-amber-700 font-medium">(คลิกแถวเพื่อดูหน้าสถานะลูกค้า)</span></h3>
-                <button onclick="openQueueModal()" class="px-4 py-2.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-400 wiggle-hover"><i class="fa-solid fa-plus"></i> เพิ่มคิวใหม่</button>
+                <button onclick="openQueueModal()" class="px-4 py-2.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs sm:text-sm shadow-xs transition flex items-center gap-2 border border-amber-400"><i class="fa-solid fa-plus"></i> เพิ่มคิวใหม่</button>
             </div>
             <div class="paper-card overflow-hidden bg-white">
                 <div class="overflow-x-auto">
@@ -356,8 +418,18 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                 <form onsubmit="saveSettings(event)" class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><label class="block text-xs font-bold text-amber-950 mb-1">ชื่อร้านค้า</label><input type="text" id="setting-store-name" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"></div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-amber-950 mb-1">สถานะร้านค้า (แสดงที่หน้าแรก)</label>
+                            <select id="setting-store-status" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                <option value="open">🟢 เปิดรับออเดอร์ตามปกติ</option>
+                                <option value="slow">🟡 เปิดรับออเดอร์ (แต่อาจตอบช้า)</option>
+                                <option value="closed">🔴 ปิดรับออเดอร์ชั่วคราว</option>
+                            </select>
+                        </div>
+
                         <div><label class="block text-xs font-bold text-amber-950 mb-1">LINE ID</label><input type="text" id="setting-line-id" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"></div>
-                        <div class="sm:col-span-2"><label class="block text-xs font-bold text-amber-950 mb-1">LINE Direct Link (URL)</label><input type="text" id="setting-line-url" placeholder="เช่น https://lin.ee/xxxx" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"></div>
+                        <div><label class="block text-xs font-bold text-amber-950 mb-1">LINE Direct Link (URL)</label><input type="text" id="setting-line-url" placeholder="เช่น https://lin.ee/xxxx" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"></div>
 
                         <div class="sm:col-span-2 mt-4">
                             <label class="block text-sm font-extrabold text-red-600 mb-2 border-b border-red-200 pb-1"><i class="fa-solid fa-bullhorn"></i> จัดการข้อความประกาศแยกแต่ละหน้า (ถ้าช่องไหนว่าง จะไม่แสดงประกาศในหน้านั้น)</label>
@@ -370,7 +442,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                             </div>
                         </div>
                     </div>
-                    <button type="submit" id="save-settings-btn" class="px-8 py-3 bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-2 border border-amber-500 wiggle-hover w-full sm:w-auto"><i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่า</button>
+                    <button type="submit" id="save-settings-btn" class="px-8 py-3 bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-2 border border-amber-500 w-full sm:w-auto"><i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่า</button>
                 </form>
             </div>
         </div>
@@ -380,7 +452,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
 <section id="tab-customer-status-detail" class="tab-content space-y-6 hidden">
     <div class="max-w-3xl mx-auto space-y-6">
         <div class="flex items-center justify-between bg-amber-100 p-4 rounded-[24px] border-2 border-amber-300 shadow-sm">
-            <button onclick="goBackFromDetail()" class="px-5 py-2.5 bg-white hover:bg-amber-50 text-amber-950 font-extrabold rounded-xl text-xs sm:text-sm border border-amber-300 transition flex items-center gap-2 shadow-xs wiggle-hover"><i class="fa-solid fa-arrow-left"></i> ย้อนกลับ</button>
+            <button onclick="goBackFromDetail()" class="px-5 py-2.5 bg-white hover:bg-amber-50 text-amber-950 font-extrabold rounded-xl text-xs sm:text-sm border border-amber-300 transition flex items-center gap-2 shadow-xs"><i class="fa-solid fa-arrow-left"></i> ย้อนกลับ</button>
             <span class="text-xs font-bold text-amber-950 bg-amber-300 px-3 py-1 rounded-full border border-amber-400">สถานะออเดอร์ของคุณ</span>
         </div>
         <div class="paper-card p-6 sm:p-8 space-y-6 bg-white">
@@ -434,7 +506,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
         <button onclick="closeModal('modal-product-detail')" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-amber-100 text-amber-950 flex items-center justify-center font-bold border border-amber-300 hover:bg-amber-300 transition"><i class="fa-solid fa-xmark"></i></button>
         <div class="bg-amber-50 rounded-2xl overflow-hidden aspect-square border-2 border-amber-100"><img id="detail-img" class="w-full h-full object-cover" src="" alt=""></div>
         <div><span id="detail-category" class="text-[10px] font-extrabold px-3 py-1 rounded-full bg-amber-200 text-amber-950 border border-amber-300"></span><h3 id="detail-title" class="text-xl font-extrabold text-amber-950 mt-3 leading-snug"></h3><p id="detail-price" class="text-lg font-extrabold text-rose-600 mt-1"></p><p id="detail-desc" class="text-sm text-amber-900 mt-3 whitespace-pre-wrap leading-relaxed font-medium bg-amber-50 p-3 rounded-xl"></p></div>
-        <div class="pt-2"><button id="detail-order-line-btn" class="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white font-extrabold rounded-2xl transition flex items-center justify-center gap-2 shadow-md border-2 border-green-600 wiggle-hover"><i class="fa-brands fa-line text-xl"></i> สั่งชิ้นนี้ทาง LINE</button></div>
+        <div class="pt-2"><button id="detail-order-line-btn" class="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white font-extrabold rounded-2xl transition flex items-center justify-center gap-2 shadow-md border-2 border-green-600"><i class="fa-brands fa-line text-xl"></i> สั่งชิ้นนี้ทาง LINE</button></div>
     </div>
 </div>
 
@@ -454,7 +526,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
                 <div class="mt-2 w-24 h-24 rounded-2xl bg-amber-50 border-2 border-dashed border-amber-200 overflow-hidden flex items-center justify-center relative"><img id="prod-image-preview" class="w-full h-full object-cover hidden" src="" alt="Preview"><i id="prod-image-placeholder" class="fa-solid fa-camera text-amber-300 text-2xl"></i></div>
             </div>
             <div><label class="block text-xs font-bold text-amber-950 mb-1">รายละเอียด</label><textarea id="prod-desc" rows="2" class="w-full px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold"></textarea></div>
-            <button type="submit" id="save-product-btn" class="w-full py-3 bg-amber-400 font-extrabold rounded-xl border border-amber-500 shadow-sm wiggle-hover">บันทึก</button>
+            <button type="submit" id="save-product-btn" class="w-full py-3 bg-amber-400 font-extrabold rounded-xl border border-amber-500 shadow-sm">บันทึก</button>
         </form>
     </div>
 </div>
@@ -531,22 +603,129 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
 
 <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
 
+<button onclick="toggleMusic(event)" id="music-toggle-btn" class="fixed bottom-5 left-5 z-[9999] w-11 h-11 bg-amber-100 text-amber-600 rounded-full border-2 border-amber-300 shadow-lg flex items-center justify-center hover:bg-amber-200 transition-all hover:scale-110">
+    <i class="fa-solid fa-volume-xmark"></i>
+</button>
+
 <script>
 const SUPABASE_URL = 'https://whhsgezgatzbakzyisiz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaHNnZXpnYXR6YmFrenlpc2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzODIyNjQsImV4cCI6MjEwNDk1ODI2NH0.wZuyu_EmRcpA4XP3wtKGpcAc6HOdbd2EwF3NZyxeMrU';
 let supabaseClient = null;
 
 let appState = {
-    settings: { storeName: 'กำลังโหลด...', lineId: '', lineUrl: '', noticeHome: '', noticeStorefront: '', noticePromotions: '', noticeQueue: '', noticeLine: '' },
+    settings: { storeName: 'กำลังโหลด...', storeStatus: 'open', lineId: '', lineUrl: '', noticeHome: '', noticeStorefront: '', noticePromotions: '', noticeQueue: '', noticeLine: '' },
     categories: ['ทั้งหมด'], products: [], promotions: [], queues: [],
     selectedCategory: 'ทั้งหมด', isAdminLoggedIn: false, activeQueueDetailId: null, previousTabId: 'home', appliedPromoCode: ''
 };
 
+const bgMusic = new Audio('Sunlight_On_The_Threshold.mp3'); 
+bgMusic.loop = true;
+bgMusic.volume = 0.5;
+let isMusicPlaying = false;
+
+function toggleMusic(e) {
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    const btn = document.getElementById('music-toggle-btn');
+    if (isMusicPlaying) {
+        bgMusic.pause();
+        isMusicPlaying = false;
+        if(btn) btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+    } else {
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+            if(btn) btn.innerHTML = '<i class="fa-solid fa-music"></i>';
+        }).catch(err => {
+            console.log("Audio Error:", err);
+            showToast("ไม่พบไฟล์เสียง Sunlight_On_The_Threshold.mp3 อัปโหลดไฟล์หรือยัง?", "error");
+        });
+    }
+}
+
+document.addEventListener('click', function initAudio(e) {
+    if(e.target.closest('#music-toggle-btn')) { document.removeEventListener('click', initAudio); return; }
+    if(!isMusicPlaying) {
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+            const btn = document.getElementById('music-toggle-btn');
+            if(btn) btn.innerHTML = '<i class="fa-solid fa-music"></i>';
+        }).catch(e => { console.log("Auto-play error:", e); });
+    }
+    document.removeEventListener('click', initAudio);
+}, { once: true });
+
+let audioCtx;
+function playCuteClickSound() {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
+        oscillator.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.08); 
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime); 
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {}
+}
+
+function createFallingDecoration() {
+    const el = document.createElement('div');
+    el.className = 'falling-decoration';
+    const colors = ['#fde68a', '#fef08a', '#fffbeb', '#ffe4e6', '#ffedd5', '#fbcfe8', '#e0e7ff'];
+    el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    const size = Math.random() * 8 + 6; 
+    const isPetal = Math.random() > 0.5;
+    el.style.width = size + 'px';
+    el.style.height = (isPetal ? size * 1.5 : size) + 'px';
+    if (isPetal) { el.style.borderTopLeftRadius = '0px'; el.style.borderBottomRightRadius = '0px'; }
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.animationDuration = (Math.random() * 4 + 5) + 's'; 
+    document.body.appendChild(el);
+    setTimeout(() => { if(document.body.contains(el)) el.remove(); }, 9500); 
+}
+setInterval(createFallingDecoration, 700);
+
+let lastTrailTime = 0;
+document.addEventListener('mousemove', (e) => {
+    const now = Date.now();
+    if (now - lastTrailTime > 60) { lastTrailTime = now; createMouseTrail(e.pageX, e.pageY); }
+});
+
+function createMouseTrail(x, y) {
+    const particle = document.createElement('div');
+    particle.className = 'mouse-trail-particle';
+    const size = Math.random() * 4 + 4;
+    particle.style.width = size + 'px'; particle.style.height = size + 'px';
+    const colors = ['#fde68a', '#fef08a', '#fffbeb', '#ffe4e6', '#fbcfe8'];
+    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    const offsetX = (Math.random() - 0.5) * 12; const offsetY = (Math.random() - 0.5) * 12;
+    particle.style.left = (x + offsetX) + 'px'; particle.style.top = (y + offsetY) + 'px';
+    document.body.appendChild(particle);
+    setTimeout(() => { if(document.body.contains(particle)) particle.remove(); }, 600);
+}
+
+function createClickRipple(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'click-ripple';
+    ripple.style.left = x + 'px'; ripple.style.top = y + 'px';
+    document.body.appendChild(ripple);
+    setTimeout(() => { if(document.body.contains(ripple)) ripple.remove(); }, 500);
+}
+
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('button, a, .cursor-pointer, input[type="radio"], input[type="checkbox"], .nav-tab-btn');
+    if(target && target.id === 'music-toggle-btn') return;
+    if (target && !target.disabled) { playCuteClickSound(); createClickRipple(e.clientX, e.clientY); }
+});
+
 function escapeHTML(str) { if (typeof str !== 'string') return str; return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
 
 function showToast(msg, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if(!container) return;
+    const container = document.getElementById('toast-container'); if(!container) return;
     const toast = document.createElement('div');
     toast.className = `px-4 py-3 rounded-2xl shadow-lg border text-sm font-extrabold flex items-center gap-2 transform translate-y-2 opacity-0 transition-all z-50 ${type === 'success' ? 'bg-amber-400 text-amber-950 border-amber-500' : 'bg-red-500 text-white border-red-600'}`;
     toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i><span>${escapeHTML(msg)}</span>`;
@@ -559,46 +738,35 @@ function openModal(id) { document.getElementById(id)?.classList.remove('hidden')
 function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
 function setGridLoading(id) { const g=document.getElementById(id); if(g) g.innerHTML=`<div class="col-span-full text-center py-12 text-amber-900 font-bold paper-card bg-amber-50/50"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-amber-400"></i><br>กำลังโหลดข้อมูล...</div>`;}
 function setGridEmpty(id, msg) { const g=document.getElementById(id); if(g) g.innerHTML=`<div class="col-span-full text-center py-12 text-amber-900 font-bold paper-card bg-amber-50 border-amber-200"><i class="fa-solid fa-box-open text-3xl mb-3 text-amber-400"></i><br>${escapeHTML(msg)}</div>`;}
-
 function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
 
 async function fetchSupabaseData() {
-    if (!supabaseClient) {
-        showToast("เซิร์ฟเวอร์ยังไม่พร้อมใช้งาน ข้อมูลบางส่วนอาจไม่แสดง", "error");
-        return;
-    }
+    if (!supabaseClient) { showToast("เซิร์ฟเวอร์ยังไม่พร้อมใช้งาน ข้อมูลบางส่วนอาจไม่แสดง", "error"); return; }
     setGridLoading('product-grid'); setGridLoading('promotions-grid-container'); setGridLoading('queue-list-container');
     
     try {
-        // Fetch Settings
         const { data: sData, error: sErr } = await supabaseClient.from('settings').select('*');
         if (sErr) throw sErr;
         if (sData && sData.length > 0) {
             const sMap = {}; sData.forEach(r => sMap[r.key] = r.value);
             appState.settings = { 
-                storeName: sMap.storeName || 'JUMBOO SHOP 🌼', 
-                lineId: sMap.lineId||'', lineUrl: sMap.lineUrl||'', 
+                storeName: sMap.storeName || 'JUMBOO SHOP 🌼', storeStatus: sMap.storeStatus || 'open', lineId: sMap.lineId||'', lineUrl: sMap.lineUrl||'', 
                 noticeHome: sMap.noticeHome||'', noticeStorefront: sMap.noticeStorefront||'',
                 noticePromotions: sMap.noticePromotions||'', noticeQueue: sMap.noticeQueue||'', noticeLine: sMap.noticeLine||''
             };
-        } else {
-            appState.settings.storeName = 'JUMBOO SHOP 🌼';
-        }
+        } else { appState.settings.storeName = 'JUMBOO SHOP 🌼'; appState.settings.storeStatus = 'open'; }
         applyStoreSettings();
 
-        // Fetch Categories
         const { data: cData, error: cErr } = await supabaseClient.from('categories').select('*');
         if (cErr) throw cErr;
         if (cData) appState.categories = ['ทั้งหมด', ...cData.map(c => c.name)];
         renderCategoryFilters();
 
-        // Fetch Products
         const { data: pData, error: pErr } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
         if (pErr) throw pErr;
         if (pData) appState.products = pData.map(p => ({ id: p.id, title: p.title, category: p.category, price: p.price, imageUrl: p.image_url, description: p.description }));
         renderStorefrontProducts();
 
-        // Fetch Promotions
         const { data: prData, error: prErr } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false });
         if (prErr) throw prErr;
         if (prData) {
@@ -609,12 +777,11 @@ async function fetchSupabaseData() {
         }
         renderPromotions();
 
-        // Fetch Queues (Order by code descending Z -> A)
         const { data: qData, error: qErr } = await supabaseClient.from('queues').select('*');
         if (qErr) throw qErr;
         if (qData) {
             appState.queues = qData.map(q => ({ id: q.id, code: q.code, customerName: q.customer_name, items: q.items, note: q.note || '', status: q.status, progress: q.progress || 10, orderDate: q.order_date }));
-            appState.queues.sort((a, b) => b.code.localeCompare(a.code)); // Sort Descending
+            appState.queues.sort((a, b) => b.code.localeCompare(a.code)); 
         }
         renderQueueList();
 
@@ -631,11 +798,8 @@ async function fetchSupabaseData() {
 
 async function bootApp() {
     try { 
-        if(window.supabase) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); 
-        } else {
-            throw new Error("Supabase SDK is missing.");
-        }
+        if(window.supabase) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } 
+        else { throw new Error("Supabase SDK is missing."); }
     } catch (e) { 
         console.error("Supabase init error:", e);
         showToast("ระบบไม่สามารถเชื่อมต่อฐานข้อมูลได้ในขณะนี้", "error");
@@ -686,6 +850,7 @@ function applyStoreSettings() {
     const elBannerId = document.getElementById('top-banner-line-id'); if(elBannerId) elBannerId.textContent = appState.settings.lineId;
     const elDisplayId = document.getElementById('display-line-id'); if(elDisplayId) elDisplayId.textContent = appState.settings.lineId;
     updateGlobalNoticeVisibility(appState.previousTabId);
+    renderHomeStatusAndQueue();
 }
 
 function updateGlobalNoticeVisibility(currentTab) {
@@ -727,11 +892,49 @@ function switchTab(tabId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function renderHomeStatusAndQueue() {
+    const statusBox = document.getElementById('home-store-status-container');
+    if (statusBox) {
+        const st = appState.settings.storeStatus || 'open';
+        if (st === 'closed') {
+            statusBox.innerHTML = '<span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-red-100 text-red-700 text-sm font-extrabold border border-red-200 shadow-xs"><i class="fa-solid fa-store-slash"></i> ตอนนี้ร้านปิดรับออเดอร์ชั่วคราวนะคะ</span>';
+        } else if (st === 'slow') {
+            statusBox.innerHTML = '<span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-orange-100 text-orange-700 text-sm font-extrabold border border-orange-200 shadow-xs"><i class="fa-solid fa-clock"></i> เปิดรับออเดอร์ (แต่แม่ค้าอาจตอบช้านิดนึงน้า)</span>';
+        } else {
+            statusBox.innerHTML = '<span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-extrabold border border-green-200 shadow-xs"><i class="fa-solid fa-store"></i> เปิดรับออเดอร์ตามปกติค่ะ</span>';
+        }
+    }
+
+    const summaryBox = document.getElementById('home-queue-summary');
+    if (summaryBox) {
+        const activeQs = appState.queues.filter(q => q.status !== 'delivered'); 
+        const countReceived = activeQs.filter(q => q.status === 'received').length;
+        const countProgress = activeQs.filter(q => q.status === 'in_progress').length;
+        const countCompleted = activeQs.filter(q => q.status === 'completed').length;
+        
+        summaryBox.innerHTML = `
+            <div class="flex items-center gap-2 px-3.5 py-2 bg-amber-200 border border-amber-300 rounded-xl shadow-xs">
+                <div class="w-7 h-7 rounded-lg bg-white/60 flex items-center justify-center text-amber-900 text-sm border border-amber-300/50"><i class="fa-solid fa-users"></i></div>
+                <div class="flex flex-col"><span class="text-[10px] text-amber-800 font-extrabold leading-none mb-0.5">ติดคิวรวม</span><span class="text-sm font-extrabold text-amber-950 leading-none">${activeQs.length} <span class="text-[10px] font-bold">คิว</span></span></div>
+            </div>
+            <div class="flex items-center gap-2 px-3.5 py-2 bg-white border border-amber-200 rounded-xl shadow-xs">
+                <div class="flex flex-col"><span class="text-[10px] text-amber-700 font-extrabold leading-none mb-0.5">รับออเดอร์</span><span class="text-sm font-extrabold text-amber-950 leading-none">${countReceived}</span></div>
+            </div>
+            <div class="flex items-center gap-2 px-3.5 py-2 bg-blue-50 border border-blue-200 rounded-xl shadow-xs">
+                <div class="flex flex-col"><span class="text-[10px] text-blue-700 font-extrabold leading-none mb-0.5">กำลังทำ</span><span class="text-sm font-extrabold text-blue-950 leading-none">${countProgress}</span></div>
+            </div>
+            <div class="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs">
+                <div class="flex flex-col"><span class="text-[10px] text-emerald-700 font-extrabold leading-none mb-0.5">เสร็จแล้ว</span><span class="text-sm font-extrabold text-emerald-950 leading-none">${countCompleted}</span></div>
+            </div>
+        `;
+    }
+}
+
 function renderCategoryFilters() {
     const c = document.getElementById('category-filter-container'); if(!c) return; c.innerHTML='';
     appState.categories.forEach(cat => {
         const btn = document.createElement('button'); btn.onclick = () => { appState.selectedCategory = cat; renderCategoryFilters(); renderStorefrontProducts(); };
-        btn.className = `px-5 py-2.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all border wiggle-hover ${appState.selectedCategory===cat ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm' : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'}`;
+        btn.className = `px-5 py-2.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all border ${appState.selectedCategory===cat ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm' : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'}`;
         btn.textContent = cat; c.appendChild(btn);
     });
 }
@@ -753,7 +956,7 @@ function renderStorefrontProducts() {
         const card = document.createElement('div'); card.className = 'paper-card flex flex-col group cursor-pointer overflow-hidden'; card.onclick = () => openProductDetail(p.id);
         card.innerHTML = `<div class="relative aspect-square bg-amber-100 border-b-2 border-amber-200 overflow-hidden"><img src="${escapeHTML(p.imageUrl||'')}" onerror="this.src='https://placehold.co/400x400/fef08a/78350f?text=NO+IMAGE'" class="w-full h-full object-cover group-hover:scale-105 transition duration-500"><span class="absolute top-2 left-2 bg-white/90 text-amber-950 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-amber-200 shadow-xs">${escapeHTML(p.category)}</span></div>
         <div class="p-3.5 flex flex-col flex-grow justify-between"><div><h3 class="font-extrabold text-amber-950 text-sm leading-snug line-clamp-1">${escapeHTML(p.title)}</h3><div class="mt-2 text-lg font-extrabold text-rose-600">฿${p.price}</div></div></div>`;
-        const btn = document.createElement('button'); btn.className = 'mt-3 w-full py-2 bg-amber-300 hover:bg-amber-400 text-amber-950 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-amber-400 wiggle-hover shadow-xs';
+        const btn = document.createElement('button'); btn.className = 'mt-3 w-full py-2 bg-amber-300 hover:bg-amber-400 text-amber-950 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-amber-400 shadow-xs';
         btn.innerHTML = '<i class="fa-brands fa-line text-green-600 text-base"></i> สั่งผ่าน LINE'; btn.onclick = (e) => { e.stopPropagation(); quickOrderLine(p.id); };
         card.lastChild.appendChild(btn); grid.appendChild(card);
     });
@@ -780,7 +983,7 @@ function renderPromotions() {
         const bottomDiv = document.createElement('div'); bottomDiv.className = 'pt-3 border-t border-amber-200 flex items-center justify-between gap-3 relative z-10';
         bottomDiv.innerHTML = `<div class="bg-white px-4 py-2 rounded-xl border border-amber-300 font-mono font-bold text-amber-950 text-sm tracking-wider select-all">${codeDisplay}</div>`;
         if(promo.code) {
-            const btn = document.createElement('button'); btn.className='px-4 py-2.5 bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 border border-amber-400 wiggle-hover'; btn.innerHTML='<i class="fa-solid fa-copy"></i> คัดลอกโค้ด';
+            const btn = document.createElement('button'); btn.className='px-4 py-2.5 bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 border border-amber-400'; btn.innerHTML='<i class="fa-solid fa-copy"></i> คัดลอกโค้ด';
             btn.onclick=()=>{ navigator.clipboard.writeText(promo.code); showToast(`คัดลอกโค้ด ${promo.code} แล้ว!`); }; bottomDiv.appendChild(btn);
         }
         card.appendChild(bottomDiv); container.appendChild(card);
@@ -804,12 +1007,17 @@ function renderQueueList() {
     if(countBadge) countBadge.textContent = `รวมทั้งหมด ${qs.length} คิว`; 
     c.innerHTML = '';
     
-    if (qs.length === 0) return setGridEmpty('queue-list-container', 'ไม่พบข้อมูลคิวงาน');
-    qs.forEach(q => {
-        const div = document.createElement('div'); div.className = 'bg-amber-50/50 border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-4 transition shadow-xs cursor-pointer wiggle-hover'; div.onclick = () => openCustomerStatusDetail(q.id);
-        div.innerHTML = `<div class="flex items-center justify-between border-b border-amber-200 pb-2 mb-2"><span class="font-mono font-extrabold text-sm bg-white px-3 py-1 rounded-lg border border-amber-200">${escapeHTML(q.code)}</span><div>${getStatusBadge(q.status)}</div></div><div><div class="font-bold text-amber-950">${escapeHTML(q.customerName)}</div><div class="text-xs text-amber-900 mt-1 truncate">สั่ง: ${escapeHTML(q.items)}</div></div>`;
-        c.appendChild(div);
-    });
+    if (qs.length === 0) {
+        setGridEmpty('queue-list-container', 'ไม่พบข้อมูลคิวงาน');
+    } else {
+        qs.forEach(q => {
+            const div = document.createElement('div'); div.className = 'bg-amber-50/50 border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-4 transition shadow-xs cursor-pointer'; div.onclick = () => openCustomerStatusDetail(q.id);
+            div.innerHTML = `<div class="flex items-center justify-between border-b border-amber-200 pb-2 mb-2"><span class="font-mono font-extrabold text-sm bg-white px-3 py-1 rounded-lg border border-amber-200">${escapeHTML(q.code)}</span><div>${getStatusBadge(q.status)}</div></div><div><div class="font-bold text-amber-950">${escapeHTML(q.customerName)}</div><div class="text-xs text-amber-900 mt-1 truncate">สั่ง: ${escapeHTML(q.items)}</div></div>`;
+            c.appendChild(div);
+        });
+    }
+    
+    renderHomeStatusAndQueue();
 }
 
 function openProductDetail(id) {
@@ -1020,11 +1228,7 @@ function renderLineItemForms() {
     } else { 
         document.querySelectorAll('.item-form-group').forEach(g => { 
             existingValues.push({ 
-                cat: g.querySelector('.item-cat')?.value||'', 
-                type: g.querySelector('.item-type')?.value||'', 
-                text: g.querySelector('.item-text')?.value||'', 
-                tone: g.querySelector('.item-tone')?.value||'', 
-                note: g.querySelector('.item-note')?.value||'' 
+                cat: g.querySelector('.item-cat')?.value||'', type: g.querySelector('.item-type')?.value||'', text: g.querySelector('.item-text')?.value||'', tone: g.querySelector('.item-tone')?.value||'', note: g.querySelector('.item-note')?.value||'' 
             }); 
         }); 
     }
@@ -1116,6 +1320,7 @@ function renderAdminTables() {
     const qBody = document.getElementById('admin-queues-table-body'); if(qBody) { qBody.innerHTML=''; if(appState.queues.length===0) qBody.innerHTML=`<tr><td colSpan="6" class="p-4 text-center text-amber-800">ไม่มีข้อมูล</td></tr>`; else appState.queues.forEach(q=>{ const tr=document.createElement('tr'); tr.className='cursor-pointer hover:bg-amber-50 transition'; tr.onclick=()=>openCustomerStatusDetail(q.id); tr.innerHTML=`<td class="p-3.5 font-mono font-bold underline text-amber-700">${escapeHTML(q.code)}</td><td class="p-3.5 font-bold">${escapeHTML(q.customerName)}</td><td class="p-3.5 text-xs truncate max-w-[120px]">${escapeHTML(q.items)}</td><td class="p-3.5">${getStatusBadge(q.status)}</td><td class="p-3.5" onclick="event.stopPropagation()"><div class="flex items-center gap-1"><input type="text" id="inline-note-${q.id}" value="${escapeHTML(q.note||'')}" placeholder="เพิ่มหมายเหตุ..." class="w-24 sm:w-32 px-2 py-1.5 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-xs"><button onclick="saveInlineNote('${q.id}')" class="p-1.5 bg-amber-300 hover:bg-amber-400 text-amber-950 rounded-lg shadow-xs transition"><i class="fa-solid fa-save"></i></button></div></td>`; const td=document.createElement('td'); td.className="p-3.5 text-center whitespace-nowrap"; td.onclick=e=>e.stopPropagation(); td.innerHTML=`<button onclick="editAdminQueue('${q.id}')" class="p-2 bg-amber-200 rounded mr-1 hover:bg-amber-300"><i class="fa-solid fa-pen"></i></button><button onclick="deleteAdminQueue('${q.id}')" class="p-2 bg-red-200 rounded text-red-700 hover:bg-red-300"><i class="fa-solid fa-trash"></i></button>`; tr.appendChild(td); qBody.appendChild(tr); }); }
     
     document.getElementById('setting-store-name').value = appState.settings.storeName; 
+    document.getElementById('setting-store-status').value = appState.settings.storeStatus || 'open';
     document.getElementById('setting-line-id').value = appState.settings.lineId; 
     document.getElementById('setting-line-url').value = appState.settings.lineUrl; 
     
@@ -1135,6 +1340,7 @@ async function saveSettings(e) {
         
         const st=[
             {key:'storeName',value:document.getElementById('setting-store-name').value.trim()},
+            {key:'storeStatus',value:document.getElementById('setting-store-status').value},
             {key:'lineId',value:document.getElementById('setting-line-id').value.trim()},
             {key:'lineUrl',value:finalUrl},
             {key:'noticeHome',value:document.getElementById('setting-notice-home').value.trim()},
@@ -1148,9 +1354,15 @@ async function saveSettings(e) {
             if(error) throw error;
         }
         
-        appState.settings.storeName = st[0].value; appState.settings.lineId = st[1].value; appState.settings.lineUrl = st[2].value; 
-        appState.settings.noticeHome = st[3].value; appState.settings.noticeStorefront = st[4].value;
-        appState.settings.noticePromotions = st[5].value; appState.settings.noticeQueue = st[6].value; appState.settings.noticeLine = st[7].value;
+        appState.settings.storeName = st[0].value; 
+        appState.settings.storeStatus = st[1].value; 
+        appState.settings.lineId = st[2].value; 
+        appState.settings.lineUrl = st[3].value; 
+        appState.settings.noticeHome = st[4].value; 
+        appState.settings.noticeStorefront = st[5].value;
+        appState.settings.noticePromotions = st[6].value; 
+        appState.settings.noticeQueue = st[7].value; 
+        appState.settings.noticeLine = st[8].value;
         
         applyStoreSettings();
         showToast('บันทึกการตั้งค่าสำเร็จ'); 
@@ -1198,6 +1410,7 @@ function openProductModal() {
     appState.categories.filter(x=>x!=='ทั้งหมด').forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent=x; c.appendChild(o); }); 
     openModal('modal-admin-product'); 
 }
+
 function editAdminProduct(id) { 
     const p=appState.products.find(x=>x.id===id); if(!p)return; 
     openProductModal(); document.getElementById('prod-edit-id').value=p.id; document.getElementById('prod-title').value=p.title; 
@@ -1210,6 +1423,7 @@ function editAdminProduct(id) {
         document.getElementById('prod-image-placeholder').classList.add('hidden'); document.getElementById('prod-image-filename').textContent='รูปปัจจุบัน'; 
     } 
 }
+
 async function saveAdminProduct(e) { 
     e.preventDefault(); if(!supabaseClient) return showToast("เซิร์ฟเวอร์ไม่พร้อมใช้งาน", "error"); 
     const b=document.getElementById('save-product-btn'); b.disabled=true; 
