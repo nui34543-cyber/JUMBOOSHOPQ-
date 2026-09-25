@@ -77,6 +77,25 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important;
     0% { transform: scale(1) translateY(0); opacity: 0.6; }
     100% { transform: scale(0) translateY(15px); opacity: 0; }
 }
+
+/* =========================================
+   แก้ไขโทนสีตามที่กำหนด (บังคับใช้ด้วย !important)
+========================================= */
+:root {
+    --primary-color: #F4C760 !important; /* สีเหลืองทองพาสเทลสำหรับปุ่ม */
+    --primary-hover: #e0b450 !important; 
+    --bg-color: #FCF9F2 !important; /* สีพื้นหลังครีมอ่อน */
+    --card-bg: #FFFFFF !important; /* สีกล่อง/พื้นหลังส่วนเนื้อหา */
+    --text-main: #543B32 !important; /* สีตัวอักษรเป็นสีน้ำตาลเข้ม */
+}
+
+body {
+    background-color: var(--bg-color) !important;
+    color: var(--text-main) !important;
+    /* เพิ่ม 2 บรรทัดล่างนี้ ถ้าอยากได้พื้นหลังเป็นลายจุดเหมือนในรูป */
+    background-image: radial-gradient(#d3c5b3 1.5px, transparent 1.5px) !important;
+    background-size: 30px 30px !important;
+}
 </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-amber-200">
@@ -636,7 +655,8 @@ function toggleMusic(e) {
             if(btn) btn.innerHTML = '<i class="fa-solid fa-music"></i>';
         }).catch(err => {
             console.log("Audio Error:", err);
-            showToast("ไม่พบไฟล์เสียง Sunlight_On_The_Threshold.mp3 อัปโหลดไฟล์หรือยัง?", "error");
+            // ปิดแจ้งเตือนสีแดง เพื่อไม่ให้กวนใจผู้ใช้เวลาหาไฟล์เพลงไม่เจอ
+            // showToast("ไม่พบไฟล์เสียง Sunlight_On_The_Threshold.mp3 อัปโหลดไฟล์หรือยัง?", "error");
         });
     }
 }
@@ -648,7 +668,9 @@ document.addEventListener('click', function initAudio(e) {
             isMusicPlaying = true;
             const btn = document.getElementById('music-toggle-btn');
             if(btn) btn.innerHTML = '<i class="fa-solid fa-music"></i>';
-        }).catch(e => { console.log("Auto-play error:", e); });
+        }).catch(e => { 
+            console.log("Auto-play error:", e); 
+        });
     }
     document.removeEventListener('click', initAudio);
 }, { once: true });
